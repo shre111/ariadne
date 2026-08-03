@@ -1,0 +1,16 @@
+# Render blueprint. One Docker web service serves the API, the WebSocket, and
+# the built UI from a single origin — no CORS, no split deploy.
+services:
+  - type: web
+    name: ariadne
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Chromium needs headroom; the free tier's 512 MB OOMs under a real run.
+    plan: standard
+    healthCheckPath: /api/runs
+    autoDeploy: false
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false # set as a secret in the Render dashboard, never commit it
+      - key: NODE_ENV
+        value: production

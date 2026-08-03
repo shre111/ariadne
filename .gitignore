@@ -1,0 +1,13 @@
+node_modules/
+dist/
+server/public/
+.env
+runs/
+*.tsbuildinfo
+
+# Internal working docs — excluded from the public submission repo
+CLAUDE.md
+context.md
+decisions.md
+memory.md
+plan.md

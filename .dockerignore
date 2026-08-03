@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+dist
+server/public
+server/dist
+.env
+.env.*
+!.env.example
+runs
+.git
+.gitignore
+*.md
+!README.md
+.claude
+memory
