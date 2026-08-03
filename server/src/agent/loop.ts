@@ -135,6 +135,41 @@ function classifyModelError(err: unknown): {
   return { kind: 'other', explain: 'There was an error communicating with the AI model.' };
 }
 
+// ─── Prompt caching ───────────────────────────────────────────────────────────
+// The executor resends the growing conversation every turn. Marking a cache
+// breakpoint on the last block of the last message caches the whole prefix
+// (tools + system + prior turns); the next turn reads it at ~0.1x and only pays
+// full price for the newly appended snapshot. Model input is byte-identical — no
+// effect on what the model reasons over. See decisions.md D-012.
+//
+// We build a shallow copy with the marker only on the CURRENT last block, so the
+// stored `messages` array stays clean and markers never accumulate past the
+// 4-breakpoint limit (the prior turn's cache entry is still read from its own
+// earlier write — reads match on content, not on where the marker sits now).
+const CACHE: Anthropic.CacheControlEphemeral = { type: 'ephemeral' };
+
+function withMessageCache(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  if (messages.length === 0) return messages;
+  const out = messages.slice();
+  const lastIdx = out.length - 1;
+  const last = out[lastIdx]!;
+  if (typeof last.content === 'string') {
+    out[lastIdx] = { ...last, content: [{ type: 'text', text: last.content, cache_control: CACHE }] };
+  } else if (last.content.length > 0) {
+    const blocks = last.content.slice();
+    // The last block is always text / image / tool_result here (never a thinking
+    // block — we don't enable thinking), so attaching cache_control is valid; the
+    // cast is needed only because ContentBlockParam's union includes types that
+    // disallow it.
+    blocks[blocks.length - 1] = {
+      ...blocks[blocks.length - 1]!,
+      cache_control: CACHE,
+    } as Anthropic.ContentBlockParam;
+    out[lastIdx] = { ...last, content: blocks };
+  }
+  return out;
+}
+
 // ─── Context ──────────────────────────────────────────────────────────────────
 
 export interface StartRunContext {
@@ -409,17 +444,30 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
     messages.push({ role: 'user', content: userContent });
 
     // Model turn — retry transient errors, stop the whole run on fatal ones.
+    // Prompt caching: mark the system prompt (constant within a step, so tools +
+    // system are reused across every turn) and the last message block (the
+    // growing history). Purely a cost/latency optimization — see withMessageCache.
+    const systemText = buildSystemPrompt(record.goal, step, ctx.totalSteps, ctx.priorNotes);
     let response: Anthropic.Message | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         response = await client.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 4096,
-          system: buildSystemPrompt(record.goal, step, ctx.totalSteps, ctx.priorNotes),
+          system: [{ type: 'text', text: systemText, cache_control: CACHE }],
           tools: AGENT_TOOLS,
-          messages,
+          messages: withMessageCache(messages),
           tool_choice: { type: 'auto' },
         });
+        // One-line confirmation the cache is hitting (dev logs only): read tokens
+        // should climb turn over turn. Silent in production to keep logs clean.
+        if (process.env.NODE_ENV !== 'production') {
+          const u = response.usage;
+          console.log(
+            `[cache] step ${step.index + 1} · read=${u.cache_read_input_tokens ?? 0} ` +
+            `write=${u.cache_creation_input_tokens ?? 0} fresh=${u.input_tokens} out=${u.output_tokens}`,
+          );
+        }
         break;
       } catch (err) {
         const c = classifyModelError(err);
