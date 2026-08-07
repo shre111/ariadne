@@ -1,11 +1,24 @@
-import type { AgentEvent, PlanStep } from '../types.ts';
+import { motion } from 'framer-motion';
+import { Play } from 'lucide-react';
+import type { AgentEvent, PlanStep } from '@/types';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-export interface Moment {
+type TickTone = 'pending' | 'live' | 'ok' | 'fault' | 'hold';
+
+interface Tick {
   seq: number;
-  kind: 'step' | 'action';
   label: string;
-  status: 'pending' | 'live' | 'ok' | 'fault' | 'hold';
+  tone: TickTone;
 }
+
+const toneBg: Record<TickTone, string> = {
+  pending: 'bg-white/12',
+  live: 'bg-live shadow-[0_0_10px_hsl(var(--live)/0.7)]',
+  ok: 'bg-ok',
+  fault: 'bg-fault',
+  hold: 'bg-hold',
+};
 
 interface Props {
   steps: PlanStep[];
@@ -16,100 +29,66 @@ interface Props {
   onScrub: (seq: number | null) => void;
 }
 
-// Build the tick band: one tick per step (coloured by outcome), with the
-// per-action ticks of the current/last step shown after a divider. Each tick
-// carries the event seq it maps to, so clicking rewinds the stage to that moment.
-function buildMoments(
-  steps: PlanStep[],
-  stepOutcomes: Record<number, 'success' | 'failed' | 'skipped'>,
-  currentStepIndex: number,
-  events: AgentEvent[],
-): Moment[] {
-  const moments: Moment[] = [];
-
-  for (const step of steps) {
+export function FlightRecorder({ steps, stepOutcomes, currentStepIndex, events, scrubSeq, onScrub }: Props) {
+  const stepTicks: Tick[] = steps.map((step) => {
     const started = events.find((e) => e.type === 'step.started' && e.stepIndex === step.index);
     const outcome = stepOutcomes[step.index];
-    let status: Moment['status'] = 'pending';
-    if (outcome === 'success') status = 'ok';
-    else if (outcome === 'failed') status = 'fault';
-    else if (outcome === 'skipped') status = 'hold';
-    else if (step.index === currentStepIndex) status = 'live';
+    let tone: TickTone = 'pending';
+    if (outcome === 'success') tone = 'ok';
+    else if (outcome === 'failed') tone = 'fault';
+    else if (outcome === 'skipped') tone = 'hold';
+    else if (step.index === currentStepIndex) tone = 'live';
+    return { seq: started ? started.seq : 0, label: `Step ${step.index + 1}: ${step.title}`, tone };
+  });
 
-    moments.push({
-      seq: started ? started.seq : 0,
-      kind: 'step',
-      label: `Step ${step.index + 1}: ${step.title}`,
-      status,
-    });
-  }
-
-  return moments;
-}
-
-export function FlightRecorder({ steps, stepOutcomes, currentStepIndex, events, scrubSeq, onScrub }: Props) {
-  const stepMoments = buildMoments(steps, stepOutcomes, currentStepIndex, events);
-
-  // Action ticks — every executed action is a scrubbable moment.
-  const actionMoments: Moment[] = [];
+  const actionTicks: Tick[] = [];
   for (const e of events) {
     if (e.type !== 'action.executed') continue;
-    actionMoments.push({
-      seq: e.seq,
-      kind: 'action',
-      label: e.explain,
-      status: e.ok ? 'ok' : 'fault',
-    });
+    actionTicks.push({ seq: e.seq, label: e.explain, tone: e.ok ? 'ok' : 'fault' });
   }
 
-  const hasContent = stepMoments.length > 0 || actionMoments.length > 0;
-  if (!hasContent) return <div className="flight-recorder" />;
-
-  // Which tick is "active" — the scrubbed one, else the newest.
-  const activeSeq = scrubSeq;
-
-  function tickClass(m: Moment): string {
-    const cls = ['flight-tick', m.status];
-    if (activeSeq !== null && m.seq === activeSeq) cls.push('active');
-    return cls.join(' ');
+  if (stepTicks.length === 0 && actionTicks.length === 0) {
+    return <div className="h-11 border-t border-white/[0.06]" />;
   }
+
+  const renderTick = (t: Tick, big: boolean) => {
+    const active = scrubSeq === t.seq;
+    return (
+      <Tooltip key={`${big ? 's' : 'a'}-${t.seq}-${t.label.slice(0, 8)}`}>
+        <TooltipTrigger asChild>
+          <motion.button
+            whileHover={{ scale: 1.35 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onScrub(t.seq)}
+            className={cn(
+              'shrink-0 rounded-[3px] transition-shadow',
+              big ? 'h-3.5 w-3.5' : 'h-2 w-[7px] rounded-full',
+              toneBg[t.tone],
+              t.tone === 'live' && 'animate-pulse-glow',
+              active && 'outline outline-2 outline-offset-2 outline-white',
+            )}
+            aria-label={t.label}
+          />
+        </TooltipTrigger>
+        <TooltipContent>{t.label}</TooltipContent>
+      </Tooltip>
+    );
+  };
 
   return (
-    <div className="flight-recorder">
+    <div className="flex h-11 items-center gap-2.5 border-t border-white/[0.06] bg-black/20 px-4">
       {scrubSeq !== null && (
-        <button className="flight-live-btn" onClick={() => onScrub(null)} title="Return to the live view">
-          ⏵ LIVE
+        <button
+          onClick={() => onScrub(null)}
+          className="flex shrink-0 items-center gap-1.5 rounded-md bg-live px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-white shadow-[0_0_12px_hsl(var(--live)/0.6)]"
+        >
+          <Play className="size-3 fill-current" /> Live
         </button>
       )}
-
-      <div className="flight-ticks" role="list" aria-label="Flight recorder — scrub to any step">
-        {stepMoments.map((m) => (
-          <button
-            key={`s${m.seq}-${m.label}`}
-            className={tickClass(m)}
-            style={{ width: 14, height: 14 }}
-            role="listitem"
-            title={m.label}
-            aria-label={m.label}
-            onClick={() => onScrub(m.seq)}
-          />
-        ))}
-
-        {actionMoments.length > 0 && (
-          <span className="flight-divider" aria-hidden="true" />
-        )}
-
-        {actionMoments.map((m) => (
-          <button
-            key={`a${m.seq}`}
-            className={tickClass(m)}
-            style={{ width: 7 }}
-            role="listitem"
-            title={m.label}
-            aria-label={m.label}
-            onClick={() => onScrub(m.seq)}
-          />
-        ))}
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-2">
+        {stepTicks.map((t) => renderTick(t, true))}
+        {actionTicks.length > 0 && <span className="mx-1 h-3.5 w-px shrink-0 bg-white/10" />}
+        {actionTicks.slice(-40).map((t) => renderTick(t, false))}
       </div>
     </div>
   );

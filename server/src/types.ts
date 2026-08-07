@@ -64,16 +64,32 @@ const ThoughtEvent = BaseEvent.extend({
 
 // ─── Action ──────────────────────────────────────────────────────────────────
 
+// Bounding box of the acted-on element, in the screenshot's own coordinate
+// space (CSS pixels at the capture viewport). Powers the "X-ray" overlay.
+const BBoxSchema = z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() });
+
 const ActionExecutedEvent = BaseEvent.extend({
   type: z.literal('action.executed'),
   tool: z.string(),
   params: z.record(z.unknown()),
   ref: z.number().int().optional(),
   refLabel: z.string().optional(),
+  bbox: BBoxSchema.optional(),
+  viewport: z.object({ width: z.number(), height: z.number() }).optional(),
   screenshotAfter: z.string().optional(), // base64 JPEG
   durationMs: z.number().optional(),
   ok: z.boolean(),
   error: z.string().optional(),
+});
+
+// ─── Usage (live cost / cache-savings ticker) ──────────────────────────────────
+
+const UsageEvent = BaseEvent.extend({
+  type: z.literal('usage'),
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+  cacheReadTokens: z.number(),
+  cacheCreationTokens: z.number(),
 });
 
 // ─── Screenshot ───────────────────────────────────────────────────────────────
@@ -158,6 +174,7 @@ export const AgentEventSchema = z.discriminatedUnion('type', [
   RecoveryEvent,
   BudgetWarningEvent,
   AskHumanEvent,
+  UsageEvent,
 ]);
 
 export type AgentEvent = z.infer<typeof AgentEventSchema>;

@@ -1,4 +1,9 @@
-import { type FormEvent, useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { motion } from 'framer-motion';
+import { ArrowUp, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+type Autonomy = 'autopilot' | 'approve_risky' | 'approve_all';
 
 const EXAMPLES = [
   'Compare Linear, Height and Shortcut on pricing, SSO, and data-residency — give me a table with sources',
@@ -6,13 +11,20 @@ const EXAMPLES = [
   'Look up the GitHub REST API rate-limit docs and summarise the key limits in a table',
 ];
 
-interface Props {
-  onStart: (goal: string, autonomy: 'autopilot' | 'approve_risky' | 'approve_all') => Promise<void>;
-}
+const AUTONOMY: [Autonomy, string][] = [
+  ['autopilot', 'Autopilot'],
+  ['approve_risky', 'Approve risky'],
+  ['approve_all', 'Approve every step'],
+];
 
-export function GoalComposer({ onStart }: Props) {
+const fade = {
+  hidden: { opacity: 0, y: 12 },
+  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: 0.05 * i, duration: 0.4, ease: 'easeOut' } }),
+};
+
+export function GoalComposer({ onStart }: { onStart: (goal: string, autonomy: Autonomy) => Promise<void> }) {
   const [goal, setGoal] = useState('');
-  const [autonomy, setAutonomy] = useState<'autopilot' | 'approve_risky' | 'approve_all'>('approve_risky');
+  const [autonomy, setAutonomy] = useState<Autonomy>('approve_risky');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,93 +42,80 @@ export function GoalComposer({ onStart }: Props) {
   }
 
   return (
-    <div className="composer-wrap" style={{ gridColumn: '1 / -1' }}>
-      <form className="composer" onSubmit={submit}>
-        <div>
-          <div className="composer-title">Ariadne</div>
-          <div className="composer-sub">AI browser agent — give it a goal, watch it work</div>
-        </div>
+    <div className="flex min-h-screen w-full items-center justify-center px-6 py-10">
+      <form onSubmit={submit} className="w-full max-w-2xl">
+        <motion.div variants={fade} custom={0} initial="hidden" animate="show" className="mb-8">
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-[hsl(280_80%_60%)] font-display text-lg font-bold text-white shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.7)]">A</span>
+            <h1 className="font-display text-4xl font-bold tracking-tight text-gradient">Ariadne</h1>
+          </div>
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            An AI browser agent — give it a goal, watch every step, steer it in real time.
+          </p>
+        </motion.div>
 
-        <div className="composer-input-wrap">
+        <motion.div variants={fade} custom={1} initial="hidden" animate="show" className="glass relative rounded-2xl p-2">
           <textarea
-            className="composer-input"
-            placeholder="What do you want to get done?"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                void submit(e as unknown as FormEvent);
-              }
-            }}
-            disabled={loading}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(e as unknown as FormEvent); } }}
+            placeholder="What do you want to get done?"
             autoFocus
+            disabled={loading}
+            className="h-28 w-full resize-none bg-transparent px-3 py-2.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
           />
-          <button className="composer-submit" type="submit" disabled={!goal.trim() || loading} aria-label="Start">
-            {loading ? '…' : '→'}
+          <button
+            type="submit"
+            disabled={!goal.trim() || loading}
+            className="absolute bottom-3 right-3 grid size-9 place-items-center rounded-xl bg-primary text-white shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.8)] transition hover:bg-primary/90 disabled:opacity-40"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
           </button>
-        </div>
+        </motion.div>
 
-        {error && (
-          <div style={{ color: 'var(--fault)', fontSize: 13 }}>{error}</div>
-        )}
+        {error && <p className="mt-3 text-sm text-fault">{error}</p>}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 11, color: 'var(--dim)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Autonomy
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(
-              [
-                ['autopilot',    'Autopilot'],
-                ['approve_risky','Approve risky (default)'],
-                ['approve_all',  'Approve every step'],
-              ] as const
-            ).map(([val, label]) => (
-              <label
+        <motion.div variants={fade} custom={2} initial="hidden" animate="show" className="mt-5 flex flex-col gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Autonomy</span>
+          <div className="flex gap-1 rounded-xl border border-white/[0.06] bg-black/20 p-1">
+            {AUTONOMY.map(([val, label]) => (
+              <button
                 key={val}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  fontSize: 13, color: autonomy === val ? 'var(--paper)' : 'var(--dim-2)',
-                  cursor: 'pointer',
-                }}
+                type="button"
+                onClick={() => setAutonomy(val)}
+                className={cn(
+                  'relative flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition',
+                  autonomy === val ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
               >
-                <span
-                  style={{
-                    width: 12, height: 12, borderRadius: '50%',
-                    border: `1.5px solid ${autonomy === val ? 'var(--live)' : 'var(--ink-3)'}`,
-                    background: autonomy === val ? 'var(--live)' : 'transparent',
-                    flexShrink: 0,
-                  }}
-                />
-                <input
-                  type="radio"
-                  name="autonomy"
-                  value={val}
-                  checked={autonomy === val}
-                  onChange={() => setAutonomy(val)}
-                  style={{ display: 'none' }}
-                />
-                {label}
-              </label>
+                {autonomy === val && (
+                  <motion.span
+                    layoutId="autonomy-pill"
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-white/[0.08] ring-1 ring-white/10"
+                  />
+                )}
+                <span className="relative">{label}</span>
+              </button>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="composer-examples">
-          <div className="composer-examples-label">Try one</div>
+        <motion.div variants={fade} custom={3} initial="hidden" animate="show" className="mt-6 flex flex-col gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Try one</span>
           {EXAMPLES.map((ex) => (
             <button
               key={ex}
               type="button"
-              className="example-chip"
-              onClick={() => setGoal(ex)}
               disabled={loading}
+              onClick={() => setGoal(ex)}
+              className="group flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-left text-[13px] text-muted-foreground transition hover:border-primary/40 hover:bg-white/[0.04] hover:text-foreground"
             >
+              <span className="text-primary opacity-60 transition group-hover:opacity-100">→</span>
               {ex}
             </button>
           ))}
-        </div>
+        </motion.div>
       </form>
     </div>
   );

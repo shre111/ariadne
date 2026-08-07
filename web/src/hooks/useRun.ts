@@ -32,11 +32,14 @@ export interface UseRunReturn {
   startRun: (goal: string, autonomy: string) => Promise<void>;
   sendCommand: (cmd: ClientCommand) => void;
   reset: () => void;
+  isWatch: boolean;
 }
 
 export function useRun(): UseRunReturn {
   const [state, dispatch] = useReducer(reducer, { mode: 'empty' });
   const wsRef = useRef<WebSocket | null>(null);
+  // Read-only spectator mode: attach to a run via a shared ?watch=1 link.
+  const isWatch = new URLSearchParams(location.search).get('watch') === '1';
 
   const sendCommand = useCallback((cmd: ClientCommand) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -107,5 +110,5 @@ export function useRun(): UseRunReturn {
     return () => { wsRef.current?.close(); };
   }, []);
 
-  return { state, startRun, sendCommand, reset };
+  return { state, startRun, sendCommand, reset, isWatch };
 }

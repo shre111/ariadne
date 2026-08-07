@@ -7,6 +7,14 @@ export interface PlanStep {
   criterion: string;
 }
 
+export interface BBox { x: number; y: number; w: number; h: number }
+export interface UsageTotals {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
+
 export type AgentEvent =
   | { type: 'run.started';       id: string; runId: string; seq: number; ts: number; explain: string; goal: string }
   | { type: 'run.finished';      id: string; runId: string; seq: number; ts: number; explain: string; result: unknown }
@@ -15,7 +23,7 @@ export type AgentEvent =
   | { type: 'step.started';      id: string; runId: string; seq: number; ts: number; explain: string; stepIndex: number; title: string }
   | { type: 'step.finished';     id: string; runId: string; seq: number; ts: number; explain: string; stepIndex: number; outcome: 'success' | 'failed' | 'skipped'; summary: string }
   | { type: 'thought';           id: string; runId: string; seq: number; ts: number; explain: string; text: string }
-  | { type: 'action.executed';   id: string; runId: string; seq: number; ts: number; explain: string; tool: string; params: Record<string, unknown>; ref?: number; refLabel?: string; ok: boolean; error?: string; durationMs?: number }
+  | { type: 'action.executed';   id: string; runId: string; seq: number; ts: number; explain: string; tool: string; params: Record<string, unknown>; ref?: number; refLabel?: string; bbox?: BBox; viewport?: { width: number; height: number }; ok: boolean; error?: string; durationMs?: number }
   | { type: 'screenshot';        id: string; runId: string; seq: number; ts: number; explain: string; data: string; width: number; height: number; stepIndex?: number }
   | { type: 'approval.required'; id: string; runId: string; seq: number; ts: number; explain: string; tool: string; params: Record<string, unknown>; riskReason: string; screenshot?: string }
   | { type: 'approval.granted';  id: string; runId: string; seq: number; ts: number; explain: string; tool: string }
@@ -23,7 +31,8 @@ export type AgentEvent =
   | { type: 'error';             id: string; runId: string; seq: number; ts: number; explain: string; code: string; detail: string }
   | { type: 'recovery';          id: string; runId: string; seq: number; ts: number; explain: string; rung: number; strategy: string; detail: string }
   | { type: 'budget.warning';    id: string; runId: string; seq: number; ts: number; explain: string; metric: 'tokens' | 'actions' | 'time'; used: number; limit: number; pct: number }
-  | { type: 'ask.human';         id: string; runId: string; seq: number; ts: number; explain: string; question: string };
+  | { type: 'ask.human';         id: string; runId: string; seq: number; ts: number; explain: string; question: string }
+  | { type: 'usage';             id: string; runId: string; seq: number; ts: number; explain: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheCreationTokens: number };
 
 export type ClientCommand =
   | { type: 'run.approve' }
@@ -56,6 +65,7 @@ export interface RunState {
   pendingApproval: (AgentEvent & { type: 'approval.required' }) | null;
   pendingQuestion: string | null;
   result: unknown;
+  latestUsage: UsageTotals | null;
 }
 
 export function initialRunState(runId: string, goal: string): RunState {
@@ -71,6 +81,7 @@ export function initialRunState(runId: string, goal: string): RunState {
     pendingApproval: null,
     pendingQuestion: null,
     result: null,
+    latestUsage: null,
   };
 }
 
@@ -107,6 +118,8 @@ export function applyEvent(state: RunState, ev: AgentEvent): RunState {
       return { ...next, stepOutcomes: { ...state.stepOutcomes, [ev.stepIndex]: ev.outcome } };
     case 'screenshot':
       return { ...next, latestScreenshot: ev.data };
+    case 'usage':
+      return { ...next, latestUsage: { inputTokens: ev.inputTokens, outputTokens: ev.outputTokens, cacheReadTokens: ev.cacheReadTokens, cacheCreationTokens: ev.cacheCreationTokens } };
     case 'approval.required':
       return { ...next, pendingApproval: ev, status: 'waiting_approval' };
     case 'approval.granted':

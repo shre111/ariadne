@@ -127,6 +127,24 @@ export class BrowserSession {
     return this.page.url();
   }
 
+  // Viewport-relative bounding box of a ref'd element, in the same CSS-pixel
+  // space as the screenshot — powers the X-ray overlay drawn over the stage.
+  async refBox(ref: number): Promise<{ x: number; y: number; w: number; h: number } | null> {
+    try {
+      const box = await this.page
+        .locator(`[data-ariadne-ref="${ref}"]`)
+        .boundingBox({ timeout: 1500 });
+      if (!box) return null;
+      return { x: box.x, y: box.y, w: box.width, h: box.height };
+    } catch {
+      return null;
+    }
+  }
+
+  viewport(): { width: number; height: number } {
+    return this.page.viewportSize() ?? { width: 1280, height: 800 };
+  }
+
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   async close(): Promise<void> {

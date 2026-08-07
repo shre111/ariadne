@@ -207,6 +207,7 @@ export async function startRun(ctx: StartRunContext): Promise<void> {
     actions: 0,
     startTime: Date.now(),
   };
+  const usageTotals = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
 
   function checkBudget(): boolean {
     if (signal.aborted) return false;
@@ -298,6 +299,7 @@ export async function startRun(ctx: StartRunContext): Promise<void> {
         runId,
         client,
         budget,
+        usage: usageTotals,
         signal,
         registry,
         record,
@@ -375,6 +377,7 @@ interface StepContext {
   runId: string;
   client: Anthropic;
   budget: { actions: number };
+  usage: { input: number; output: number; cacheRead: number; cacheCreation: number };
   signal: AbortSignal;
   registry: RunRegistry;
   record: RunRecord;
@@ -459,14 +462,28 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
           messages: withMessageCache(messages),
           tool_choice: { type: 'auto' },
         });
-        // One-line confirmation the cache is hitting (dev logs only): read tokens
-        // should climb turn over turn. Silent in production to keep logs clean.
-        if (process.env.NODE_ENV !== 'production') {
+        // Accumulate token usage and emit it for the live cost/savings ticker.
+        {
           const u = response.usage;
-          console.log(
-            `[cache] step ${step.index + 1} · read=${u.cache_read_input_tokens ?? 0} ` +
-            `write=${u.cache_creation_input_tokens ?? 0} fresh=${u.input_tokens} out=${u.output_tokens}`,
-          );
+          ctx.usage.input += u.input_tokens;
+          ctx.usage.output += u.output_tokens;
+          ctx.usage.cacheRead += u.cache_read_input_tokens ?? 0;
+          ctx.usage.cacheCreation += u.cache_creation_input_tokens ?? 0;
+          emit({
+            type: 'usage',
+            runId,
+            inputTokens: ctx.usage.input,
+            outputTokens: ctx.usage.output,
+            cacheReadTokens: ctx.usage.cacheRead,
+            cacheCreationTokens: ctx.usage.cacheCreation,
+            explain: 'Token usage updated.',
+          });
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(
+              `[cache] step ${step.index + 1} · read=${u.cache_read_input_tokens ?? 0} ` +
+              `write=${u.cache_creation_input_tokens ?? 0} fresh=${u.input_tokens} out=${u.output_tokens}`,
+            );
+          }
         }
         break;
       } catch (err) {
@@ -656,6 +673,23 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
         sendScreenshot = true; // send screenshot on next turn after approval
       }
 
+      // X-ray: for element-targeting tools, grab the acted element's bounding
+      // box and emit a matching frame first, so the UI can draw a highlight over
+      // exactly where the agent is about to act.
+      let actionBBox: { x: number; y: number; w: number; h: number } | undefined;
+      let actionViewport: { width: number; height: number } | undefined;
+      if ((tool === 'click' || tool === 'type' || tool === 'select') && typeof params['ref'] === 'number') {
+        const box = await session.refBox(params['ref']);
+        if (box) {
+          actionBBox = box;
+          actionViewport = session.viewport();
+          try {
+            const shot = await session.screenshot();
+            emit({ type: 'screenshot', runId, data: shot.data, width: shot.width, height: shot.height, explain: `Targeting ${String(params['refLabel'] ?? 'element')}.` });
+          } catch { /* non-fatal */ }
+        }
+      }
+
       // Execute the action
       const actionStart = Date.now();
       let ok = true;
@@ -684,6 +718,8 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
         params,
         ref: typeof params['ref'] === 'number' ? params['ref'] : undefined,
         refLabel: typeof params['refLabel'] === 'string' ? params['refLabel'] : undefined,
+        bbox: actionBBox,
+        viewport: actionViewport,
         ok,
         error: errorMsg,
         durationMs: Date.now() - actionStart,
