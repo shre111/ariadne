@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { screenshotAtSeq, momentLabelAtSeq, type RunStatus } from '@/types';
 import { computeCost } from '@/lib/cost';
+import { copyText } from '@/lib/clipboard';
 import { cn } from '@/lib/utils';
 
 const STATUS: Record<RunStatus, { label: string; dot: string; text: string; pulse: boolean }> = {
@@ -34,6 +35,7 @@ export function App() {
   const [scrubSeq, setScrubSeq] = useState<number | null>(null);
   const [voiceOn, setVoiceOn] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [liveHl, setLiveHl] = useState<Highlight | null>(null);
   const lastHlSeq = useRef(-1);
 
@@ -91,7 +93,18 @@ export function App() {
 
   function share() {
     const url = `${location.origin}/?run=${run.runId}&watch=1`;
-    navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }).catch(() => {});
+    void copyText(url).then((ok) => {
+      if (ok) {
+        setShareUrl(null);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      } else {
+        // Can't reach the clipboard (typically a non-secure origin). Show the
+        // link so the user can copy it by hand rather than silently doing
+        // nothing — a dead Share button is worse than an ugly one.
+        setShareUrl(url);
+      }
+    });
   }
 
   return (
@@ -149,6 +162,26 @@ export function App() {
               </TooltipTrigger>
               <TooltipContent>{copied ? 'Link copied!' : 'Copy a read-only watch link'}</TooltipContent>
             </Tooltip>
+          )}
+
+          {/* Clipboard unavailable (non-secure origin) — offer the link directly. */}
+          {shareUrl && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-hold/30 bg-hold/10 px-2 py-1">
+              <input
+                readOnly
+                value={shareUrl}
+                onFocus={(e) => e.currentTarget.select()}
+                className="w-56 bg-transparent font-mono text-[11px] text-foreground outline-none"
+                aria-label="Spectator link — copy this"
+              />
+              <button
+                onClick={() => setShareUrl(null)}
+                className="text-[11px] text-muted-foreground transition hover:text-foreground"
+                aria-label="Dismiss share link"
+              >
+                ✕
+              </button>
+            </div>
           )}
 
           {isWatch && (

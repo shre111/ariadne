@@ -19,6 +19,9 @@ export type AgentEvent =
   | { type: 'run.started';       id: string; runId: string; seq: number; ts: number; explain: string; goal: string }
   | { type: 'run.finished';      id: string; runId: string; seq: number; ts: number; explain: string; result: unknown }
   | { type: 'run.failed';        id: string; runId: string; seq: number; ts: number; explain: string; reason: string }
+  | { type: 'run.paused';        id: string; runId: string; seq: number; ts: number; explain: string }
+  | { type: 'run.resumed';       id: string; runId: string; seq: number; ts: number; explain: string }
+  | { type: 'run.stopping';      id: string; runId: string; seq: number; ts: number; explain: string }
   | { type: 'plan.proposed';     id: string; runId: string; seq: number; ts: number; explain: string; steps: PlanStep[] }
   | { type: 'step.started';      id: string; runId: string; seq: number; ts: number; explain: string; stepIndex: number; title: string }
   | { type: 'step.finished';     id: string; runId: string; seq: number; ts: number; explain: string; stepIndex: number; outcome: 'success' | 'failed' | 'skipped'; summary: string }
@@ -127,10 +130,16 @@ export function applyEvent(state: RunState, ev: AgentEvent): RunState {
       return { ...next, pendingApproval: null, status: 'running' };
     case 'ask.human':
       return { ...next, pendingQuestion: ev.question, status: 'waiting_answer' };
+    case 'run.paused':
+      return { ...next, status: 'paused' };
+    case 'run.resumed':
+      return { ...next, status: 'running' };
     case 'run.finished':
       return { ...next, status: 'finished', result: ev.result, pendingApproval: null, pendingQuestion: null };
     case 'run.failed':
-      return { ...next, status: 'failed', pendingApproval: null, pendingQuestion: null };
+      // A run the user stopped isn't a failure — the server records it as
+      // 'stopped', so mirror that here rather than showing a red "Failed".
+      return { ...next, status: ev.reason === 'stopped' ? 'stopped' : 'failed', pendingApproval: null, pendingQuestion: null };
     default:
       return next;
   }

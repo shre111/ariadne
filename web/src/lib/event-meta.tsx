@@ -1,7 +1,8 @@
 import {
   Sparkles, Globe, MousePointerClick, Keyboard, MoveVertical, Table2, Flag,
   CornerDownLeft, ChevronsUpDown, ArrowLeft, ShieldAlert, CheckCircle2, XCircle,
-  LifeBuoy, ListChecks, Radio, HelpCircle, AlertTriangle, Camera, type LucideIcon,
+  LifeBuoy, ListChecks, Radio, HelpCircle, AlertTriangle, Camera, OctagonX,
+  Pause as PauseIcon, Play as PlayIcon, type LucideIcon,
 } from 'lucide-react';
 import type { AgentEvent } from '@/types';
 
@@ -40,7 +41,10 @@ export function eventMeta(ev: AgentEvent): EventMeta {
     case 'step.finished':     return { label: `done · ${ev.outcome}`, tone: ev.outcome === 'success' ? 'ok' : ev.outcome === 'failed' ? 'fault' : 'muted', Icon: CheckCircle2 };
     case 'run.started':       return { label: 'start', tone: 'live', Icon: Radio };
     case 'run.finished':      return { label: 'finish', tone: 'ok', Icon: CheckCircle2 };
-    case 'run.failed':        return { label: 'failed', tone: 'fault', Icon: AlertTriangle };
+    case 'run.failed':        return { label: ev.reason === 'stopped' ? 'stopped' : 'failed', tone: 'fault', Icon: ev.reason === 'stopped' ? OctagonX : AlertTriangle };
+    case 'run.paused':        return { label: 'paused', tone: 'hold', Icon: PauseIcon };
+    case 'run.resumed':       return { label: 'resumed', tone: 'live', Icon: PlayIcon };
+    case 'run.stopping':      return { label: 'stopping', tone: 'hold', Icon: OctagonX };
     case 'budget.warning':    return { label: `budget · ${ev.metric}`, tone: 'hold', Icon: AlertTriangle };
     case 'ask.human':         return { label: 'question', tone: 'hold', Icon: HelpCircle };
     case 'screenshot':        return { label: 'screenshot', tone: 'muted', Icon: Camera };

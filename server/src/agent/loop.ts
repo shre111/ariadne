@@ -196,10 +196,32 @@ export async function startRun(ctx: StartRunContext): Promise<void> {
   const abortController = new AbortController();
   const { signal } = abortController;
 
-  // Listen for stop command
+  // Listen for the human control commands. Pause/resume flip the run status,
+  // which both the step loop and the executor's per-turn loop poll before
+  // acting; stop aborts the shared signal, which unwinds the in-flight model
+  // call and every wait. Each one emits an event — a control the user can press
+  // that produces no event would be invisible in the log and the replay.
   bus.onCommand((cmd) => {
     if (cmd.type === 'run.stop') {
+      if (signal.aborted) return;
+      emit({
+        type: 'run.stopping',
+        runId,
+        explain: 'Stopping — finishing the action already in flight, then shutting down.',
+      });
       abortController.abort();
+    } else if (cmd.type === 'run.pause') {
+      if (record.status !== 'running') return;
+      registry.setStatus(runId, 'paused');
+      emit({
+        type: 'run.paused',
+        runId,
+        explain: 'You paused the run. The agent will hold before its next action.',
+      });
+    } else if (cmd.type === 'run.resume') {
+      if (record.status !== 'paused') return;
+      registry.setStatus(runId, 'running');
+      emit({ type: 'run.resumed', runId, explain: 'You resumed the run.' });
     }
   });
 
@@ -461,7 +483,7 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
           tools: AGENT_TOOLS,
           messages: withMessageCache(messages),
           tool_choice: { type: 'auto' },
-        });
+        }, { signal });
         // Accumulate token usage and emit it for the live cost/savings ticker.
         {
           const u = response.usage;
@@ -487,6 +509,10 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
         }
         break;
       } catch (err) {
+        // A stop aborts the request mid-flight. That surfaces here as an error,
+        // but it's the user getting what they asked for — never retry it, and
+        // never log it as a fault. startRun ends the run from the same signal.
+        if (signal.aborted) break;
         const c = classifyModelError(err);
         if (c.kind === 'fatal') {
           throw new FatalRunError(c.explain, String(err));

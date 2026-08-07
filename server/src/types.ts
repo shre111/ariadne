@@ -27,6 +27,23 @@ const RunFailedEvent = BaseEvent.extend({
   reason: z.string(),
 });
 
+// Pausing is a human control, so like every other agent action it has to reach
+// the user as an event — the status pill and the log both read from these.
+const RunPausedEvent = BaseEvent.extend({
+  type: z.literal('run.paused'),
+});
+
+const RunResumedEvent = BaseEvent.extend({
+  type: z.literal('run.resumed'),
+});
+
+// Stopping isn't instant: an in-flight model turn or browser action has to
+// unwind first. This acknowledges the click immediately so the UI never looks
+// like it ignored the user; 'run.failed' with reason 'stopped' still ends it.
+const RunStoppingEvent = BaseEvent.extend({
+  type: z.literal('run.stopping'),
+});
+
 // ─── Plan ─────────────────────────────────────────────────────────────────────
 
 export const PlanStepSchema = z.object({
@@ -161,6 +178,9 @@ export const AgentEventSchema = z.discriminatedUnion('type', [
   RunStartedEvent,
   RunFinishedEvent,
   RunFailedEvent,
+  RunPausedEvent,
+  RunResumedEvent,
+  RunStoppingEvent,
   PlanProposedEvent,
   StepStartedEvent,
   StepFinishedEvent,

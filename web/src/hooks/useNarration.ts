@@ -11,6 +11,8 @@ function narrate(ev: AgentEvent): string | null {
     case 'ask.human':         return ev.question;
     case 'run.finished':      return 'Done. Your result is ready.';
     case 'run.failed':        return `The run stopped. ${ev.explain}`;
+    case 'run.paused':        return 'Paused.';
+    case 'run.resumed':       return 'Resuming.';
     default:                  return null;
   }
 }
