@@ -20,28 +20,28 @@ export function ApprovalGate({ event, onApprove, onReject, readOnly = false }: P
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-30 flex items-center justify-center bg-background/70 p-4 backdrop-blur-md"
+      className="absolute inset-0 z-30 flex items-center justify-center bg-foreground/35 p-4"
     >
       <motion.div
-        initial={{ scale: 0.94, y: 14, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-        className="glass w-[480px] max-w-full rounded-2xl p-6 shadow-[0_0_80px_-16px_hsl(var(--hold)/0.45)] ring-1 ring-hold/30"
+        initial={{ y: 10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className="w-[480px] max-w-full rounded-none border-[3px] border-foreground bg-card p-6 shadow-[10px_10px_0_hsl(var(--hold))]"
       >
         <div className="flex items-center gap-3">
-          <div className="grid size-10 place-items-center rounded-xl bg-hold/15 text-hold">
+          <div className="grid size-10 place-items-center rounded-none border-2 border-foreground bg-hold text-white">
             <ShieldAlert className="size-5" />
           </div>
           <div className="flex flex-col gap-1">
             <Badge variant="hold" className="w-fit">Approval needed</Badge>
-            <span className="font-display text-[15px] font-semibold">Review this action before it runs</span>
+            <span className="font-display text-[15px]">Review this action before it runs</span>
           </div>
         </div>
 
         <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">{event.riskReason}</p>
 
-        <div className="mt-4 rounded-lg border border-white/[0.06] bg-black/30 p-3 font-mono text-xs">
-          <span className="font-semibold text-live">{event.tool}</span>{' '}
+        <div className="mt-4 rounded-none border-2 border-foreground bg-background p-3 font-mono text-xs">
+          <span className="font-bold text-hold">{event.tool}</span>{' '}
           <span className="text-muted-foreground">
             {Object.entries(event.params)
               .filter(([k]) => k !== 'refLabel')
@@ -51,14 +51,14 @@ export function ApprovalGate({ event, onApprove, onReject, readOnly = false }: P
         </div>
 
         {readOnly ? (
-          <div className="mt-5 flex items-center gap-2 rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2.5 text-xs text-muted-foreground">
-            <span className="size-1.5 animate-pulse-glow rounded-full bg-hold" />
+          <div className="mt-5 flex items-center gap-2 rounded-none border-2 border-foreground bg-background px-3 py-2.5 text-xs text-muted-foreground">
+            <span className="size-1.5 animate-pulse-glow rounded-none bg-hold" />
             Waiting for the operator to decide…
           </div>
         ) : (
           <>
             <div className="mt-4 flex flex-col gap-1.5">
-              <label htmlFor="reject-note" className="text-xs text-muted-foreground">
+              <label htmlFor="reject-note" className="text-xs font-semibold text-muted-foreground">
                 Reject with a note (steers the agent)
               </label>
               <input
@@ -67,7 +67,7 @@ export function ApprovalGate({ event, onApprove, onReject, readOnly = false }: P
                 onChange={(e) => setNote(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && note.trim()) onReject(note); }}
                 placeholder="e.g. that's the signup button — use the annual toggle instead"
-                className="h-9 rounded-md border border-input bg-black/20 px-3 font-mono text-xs outline-none transition focus:border-hold focus:ring-2 focus:ring-hold/30"
+                className="h-9 rounded-none border-2 border-foreground bg-background px-3 font-mono text-xs outline-none transition focus:ring-2 focus:ring-hold"
               />
             </div>
 

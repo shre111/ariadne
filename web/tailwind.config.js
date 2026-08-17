@@ -31,9 +31,9 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Archivo', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        sans: ['Archivo', 'system-ui', 'sans-serif'],
+        display: ['"Archivo Black"', 'Archivo', 'system-ui', 'sans-serif'],
+        mono: ['"Space Mono"', 'JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       keyframes: {
         'fade-up': { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } },

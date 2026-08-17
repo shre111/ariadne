@@ -80,12 +80,11 @@ export function ResultPanel({ result, goal, onReset, onShowSource }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-      className="glass max-h-[46vh] shrink-0 overflow-y-auto border-t-0"
-      style={{ boxShadow: '0 -24px 60px -30px hsl(var(--ok)/0.35)' }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="max-h-[46vh] shrink-0 overflow-y-auto border-t-[3px] border-ok bg-card"
     >
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/[0.06] bg-card/80 px-4 py-3 backdrop-blur-xl">
-        <div className="grid size-8 place-items-center rounded-lg bg-ok/15 text-ok">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b-2 border-foreground bg-card px-4 py-3">
+        <div className="grid size-8 place-items-center rounded-none border-2 border-foreground bg-ok text-white">
           <CheckCircle2 className="size-4" />
         </div>
         <div className="flex min-w-0 flex-col">
@@ -114,7 +113,7 @@ export function ResultPanel({ result, goal, onReset, onShowSource }: Props) {
             <thead>
               <tr>
                 {cols.map((c) => (
-                  <th key={c} className="whitespace-nowrap border-b border-white/[0.08] px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th key={c} className="whitespace-nowrap border-b-2 border-foreground px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     {c.replace(/_/g, ' ')}
                   </th>
                 ))}
@@ -126,8 +125,8 @@ export function ResultPanel({ result, goal, onReset, onShowSource }: Props) {
                   key={i}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="border-b border-white/[0.05] transition-colors hover:bg-white/[0.03]"
+                  transition={{ delay: i * 0.03 }}
+                  className="border-b border-foreground/20 transition-colors hover:bg-accent"
                 >
                   {cols.map((c) => {
                     const val = row[c];
@@ -138,7 +137,7 @@ export function ResultPanel({ result, goal, onReset, onShowSource }: Props) {
                             <TooltipTrigger asChild>
                               <button
                                 onClick={() => onShowSource(val)}
-                                className="inline-flex max-w-[240px] items-center gap-1.5 truncate rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 font-mono text-[11px] text-live transition hover:border-live/40 hover:bg-live/10"
+                                className="inline-flex max-w-[240px] items-center gap-1.5 truncate rounded-none border-2 border-foreground bg-card px-2 py-1 font-mono text-[11px] font-semibold text-hold transition hover:bg-hold hover:text-white"
                               >
                                 <ExternalLink className="size-3 shrink-0" />
                                 <span className="truncate">{shortUrl(val)}</span>

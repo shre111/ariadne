@@ -100,21 +100,21 @@ export function App() {
         {/* Header */}
         <header className="glass z-20 flex h-14 shrink-0 items-center gap-3 rounded-none border-x-0 border-t-0 px-4">
           <div className="flex items-center gap-2">
-            <span className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-primary to-[hsl(280_80%_60%)] font-display text-sm font-bold text-white shadow-[0_6px_18px_-6px_hsl(var(--primary)/0.8)]">A</span>
-            <span className="font-display text-[15px] font-bold tracking-tight">Ariadne</span>
+            <span className="grid size-7 place-items-center rounded-none border-2 border-foreground bg-primary font-display text-sm text-primary-foreground">A</span>
+            <span className="font-display text-[15px] tracking-tight">Ariadne</span>
           </div>
-          <div className="mx-1 h-5 w-px bg-white/10" />
+          <div className="mx-1 h-5 w-0.5 bg-foreground" />
           <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">{run.goal}</span>
 
           {/* Live cost / cache-savings ticker */}
           {cost && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-black/20 px-3 py-1 font-mono text-[11px]">
+                <div className="flex items-center gap-2 rounded-none border-2 border-foreground bg-card px-3 py-1 font-mono text-[11px] shadow-[3px_3px_0_hsl(var(--hold))]">
                   <Zap className="size-3 text-live" />
-                  <span className="font-semibold text-foreground">${cost.cost.toFixed(cost.cost < 1 ? 3 : 2)}</span>
+                  <span className="font-bold text-foreground">${cost.cost.toFixed(cost.cost < 1 ? 3 : 2)}</span>
                   <span className="text-muted-foreground">· {actionCount} actions</span>
-                  {cost.savedPct >= 1 && <span className="text-ok">· {cost.savedPct.toFixed(0)}% cached</span>}
+                  {cost.savedPct >= 1 && <span className="font-semibold text-ok">· {cost.savedPct.toFixed(0)}% cached</span>}
                 </div>
               </TooltipTrigger>
               <TooltipContent>Live spend, actions taken, and % saved by prompt caching</TooltipContent>
@@ -126,7 +126,7 @@ export function App() {
             <TooltipTrigger asChild>
               <button
                 onClick={() => setVoiceOn((v) => !v)}
-                className={cn('grid size-8 place-items-center rounded-lg border transition', voiceOn ? 'border-live/40 bg-live/15 text-live' : 'border-white/[0.06] bg-black/20 text-muted-foreground hover:text-foreground')}
+                className={cn('grid size-8 place-items-center rounded-none border-2 border-foreground transition-colors', voiceOn ? 'bg-live text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground')}
                 aria-label="Toggle voice narration"
               >
                 {voiceOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
@@ -141,7 +141,7 @@ export function App() {
               <TooltipTrigger asChild>
                 <button
                   onClick={share}
-                  className="grid size-8 place-items-center rounded-lg border border-white/[0.06] bg-black/20 text-muted-foreground transition hover:text-foreground"
+                  className="grid size-8 place-items-center rounded-none border-2 border-foreground bg-card text-muted-foreground transition-colors hover:text-foreground"
                   aria-label="Copy spectator link"
                 >
                   {copied ? <CopyCheck className="size-4 text-ok" /> : <Share2 className="size-4" />}
@@ -152,14 +152,14 @@ export function App() {
           )}
 
           {isWatch && (
-            <span className="flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-black/20 px-3 py-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 rounded-none border-2 border-foreground bg-card px-3 py-1 text-xs text-muted-foreground">
               <Eye className="size-3.5" /> Spectating
             </span>
           )}
 
-          <div className={cn('flex items-center gap-2 rounded-full border border-white/[0.06] bg-black/20 px-3 py-1', st.text)}>
-            <span className={cn('size-2 rounded-full', st.dot, st.pulse && 'animate-pulse-glow')} />
-            <span className="text-xs font-medium">{st.label}</span>
+          <div className="flex items-center gap-2 rounded-none border-2 border-foreground bg-card px-3 py-1">
+            <span className={cn('size-2.5 rounded-none', st.dot, st.pulse && 'animate-pulse-glow')} />
+            <span className="text-xs font-bold uppercase tracking-wide text-foreground">{st.label}</span>
           </div>
         </header>
 
@@ -169,7 +169,7 @@ export function App() {
             <div className="flex-1 overflow-y-auto p-4">
               <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Plan</div>
               {run.steps.length === 0 ? (
-                <div className="thinking-sweep rounded-lg border border-white/[0.06] px-3 py-2.5 text-xs text-muted-foreground">Planning…</div>
+                <div className="thinking-sweep rounded-none border-2 border-foreground px-3 py-2.5 text-xs text-muted-foreground">Planning…</div>
               ) : (
                 <div className="flex flex-col gap-1">
                   {run.steps.map((step, i) => {
@@ -181,18 +181,18 @@ export function App() {
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.04 }}
-                        className={cn('flex items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors', isLive && 'bg-live/10 ring-1 ring-live/20', outcome && 'opacity-55')}
+                        className={cn('flex items-start gap-2.5 rounded-none px-2.5 py-2 transition-colors', isLive && 'border-l-[3px] border-live bg-live/15 pl-2', outcome && 'opacity-60')}
                       >
-                        <span className={cn('mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border text-[9px]',
-                          isLive && 'border-live bg-live text-white',
-                          outcome === 'success' && 'border-ok bg-ok text-white',
-                          outcome === 'failed' && 'border-fault bg-fault text-white',
-                          !isLive && !outcome && 'border-white/20')}>
+                        <span className={cn('mt-0.5 grid size-4 shrink-0 place-items-center rounded-none border-2 text-[9px]',
+                          isLive && 'border-foreground bg-live text-primary-foreground',
+                          outcome === 'success' && 'border-foreground bg-ok text-white',
+                          outcome === 'failed' && 'border-foreground bg-fault text-white',
+                          !isLive && !outcome && 'border-foreground')}>
                           {outcome === 'success' && <Check className="size-2.5" />}
                           {outcome === 'failed' && '✕'}
-                          {isLive && <span className="size-1.5 animate-ping rounded-full bg-white" />}
+                          {isLive && <span className="size-1.5 animate-ping rounded-none bg-primary-foreground" />}
                         </span>
-                        <span className={cn('text-xs leading-snug', isLive ? 'font-medium text-foreground' : 'text-muted-foreground')}>{step.title}</span>
+                        <span className={cn('text-xs leading-snug', isLive ? 'font-bold text-foreground' : 'text-muted-foreground')}>{step.title}</span>
                       </motion.div>
                     );
                   })}
@@ -201,9 +201,9 @@ export function App() {
             </div>
 
             {/* Controls (hidden for spectators) */}
-            <div className="flex flex-col gap-2 border-t border-white/[0.06] p-4">
+            <div className="flex flex-col gap-2 border-t-2 border-foreground p-4">
               {isWatch ? (
-                <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-none border-2 border-foreground bg-card px-3 py-2 text-xs text-muted-foreground">
                   <Eye className="size-3.5" /> Read-only — you're watching
                 </div>
               ) : (
@@ -218,8 +218,8 @@ export function App() {
           </aside>
 
           {/* Main */}
-          <main className="flex min-w-0 flex-1 flex-col bg-black/20">
-            <div className="relative flex min-h-0 flex-1 flex-col bg-[radial-gradient(60rem_30rem_at_50%_-20%,hsl(var(--stage)/0.05),transparent)]">
+          <main className="flex min-w-0 flex-1 flex-col bg-background">
+            <div className="relative flex min-h-0 flex-1 flex-col">
               <StageView
                 screenshot={scrubSeq === null ? run.latestScreenshot : screenshotAtSeq(run.events, scrubSeq)}
                 scrubbing={scrubSeq !== null}
@@ -241,10 +241,10 @@ export function App() {
             {/* Ask human */}
             <AnimatePresence>
               {run.pendingQuestion && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="shrink-0 overflow-hidden border-t border-hold/30 bg-hold/[0.08]">
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="shrink-0 overflow-hidden border-t-2 border-foreground bg-hold/10">
                   <div className="flex items-center gap-3 px-4 py-3">
                     <CircleHelp className="size-5 shrink-0 text-hold" />
-                    <span className="flex-1 text-[13px]"><span className="font-semibold text-hold">Agent needs help:</span> {run.pendingQuestion}</span>
+                    <span className="flex-1 text-[13px]"><span className="font-bold text-hold">Agent needs help:</span> {run.pendingQuestion}</span>
                     {!isWatch && (
                       <>
                         <input
@@ -252,7 +252,7 @@ export function App() {
                           onChange={(e) => setAnswerDraft(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter' && answerDraft.trim()) { sendCommand({ type: 'run.answer', answer: answerDraft }); setAnswerDraft(''); } }}
                           placeholder="Your answer…"
-                          className="h-8 w-64 rounded-md border border-input bg-black/20 px-3 text-[13px] outline-none focus:border-hold focus:ring-2 focus:ring-hold/30"
+                          className="h-8 w-64 rounded-none border-2 border-foreground bg-background px-3 text-[13px] outline-none focus:ring-2 focus:ring-hold"
                         />
                         <Button size="sm" disabled={!answerDraft.trim()} onClick={() => { sendCommand({ type: 'run.answer', answer: answerDraft }); setAnswerDraft(''); }}>
                           <Send /> Send
@@ -285,12 +285,12 @@ export function App() {
 
             {/* Activity log */}
             <div className="glass flex h-60 shrink-0 flex-col rounded-none border-x-0 border-b-0">
-              <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-2">
+              <div className="flex items-center gap-2 border-b-2 border-foreground px-4 py-2">
                 <Activity className="size-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Activity</span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Activity</span>
                 {run.status === 'running' && (
-                  <span className="ml-1 flex items-center gap-1.5 text-[10px] font-medium text-live">
-                    <span className="size-1.5 animate-pulse-glow rounded-full bg-live" /> streaming
+                  <span className="ml-1 flex items-center gap-1.5 text-[10px] font-bold uppercase text-foreground">
+                    <span className="size-1.5 animate-pulse-glow rounded-none bg-live" /> streaming
                   </span>
                 )}
               </div>
