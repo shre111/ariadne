@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BrowserSession } from '../browser/session.js';
 import { makeBase, type RunBus, type RunRegistry } from '../runs.js';
-import type { RunRecord, PlanStep, AgentEvent } from '../types.js';
+import type { RunRecord, PlanStep, AgentEvent, RunStatus } from '../types.js';
 import { planGoal } from './planner.js';
 import { AGENT_TOOLS } from './tools.js';
 import { classifyAction } from './policy.js';
@@ -633,6 +633,18 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
           params['refLabel'] = await session.refLabel(params['ref']);
         } catch { /* non-fatal */ }
       }
+
+      // Pause gate — hold right before executing a real browser action, so a
+      // pause takes effect immediately rather than only at the next turn
+      // boundary (otherwise the whole current turn's actions still fire after
+      // the user hits Pause). finish / finish_step / ask_human are handled above
+      // and intentionally aren't gated here. The cast re-widens the status,
+      // which the command handler mutates asynchronously (TS narrowed 'paused'
+      // out after the turn-top pause check).
+      while ((record.status as RunStatus) === 'paused' && !signal.aborted) {
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (signal.aborted) break;
 
       // Policy check
       const policy = classifyAction(tool as any, params, autonomy);
