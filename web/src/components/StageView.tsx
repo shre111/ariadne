@@ -46,8 +46,8 @@ export function StageView({ screenshot, scrubbing, scrubLabel, highlight }: Prop
   } : null;
 
   return (
-    <div ref={containerRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.015] via-transparent to-black/20" />
+    <div ref={containerRef} className="halftone relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-6">
+      <span className="pointer-events-none absolute left-3 top-2 select-none font-display text-2xl text-primary">⊕</span>
 
       {screenshot ? (
         <img
@@ -56,11 +56,11 @@ export function StageView({ screenshot, scrubbing, scrubLabel, highlight }: Prop
           onLoad={measure}
           draggable={false}
           alt="Live browser view"
-          className="max-h-full max-w-full rounded-xl border border-white/10 shadow-[0_40px_90px_-40px_rgba(0,0,0,0.95)] ring-1 ring-black/50 transition-opacity duration-200"
+          className="max-h-full max-w-full rounded-none border-2 border-foreground shadow-[8px_8px_0_hsl(var(--hold))] transition-opacity duration-200"
         />
       ) : (
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <div className="thinking-sweep grid size-16 place-items-center rounded-2xl border border-white/10 bg-white/[0.03]">
+          <div className="thinking-sweep grid size-16 place-items-center rounded-none border-2 border-foreground bg-card">
             <MonitorPlay className="size-7 opacity-70" />
           </div>
           <span className="text-sm">Waiting for the agent to open a page…</span>
@@ -72,17 +72,17 @@ export function StageView({ screenshot, scrubbing, scrubLabel, highlight }: Prop
         {box && (
           <motion.div
             key="xray"
-            className="pointer-events-none absolute z-20 rounded-md"
+            className="pointer-events-none absolute z-20 rounded-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, left: box.left, top: box.top, width: box.width, height: box.height }}
             exit={{ opacity: 0 }}
             transition={{ type: 'spring', stiffness: 380, damping: 30, opacity: { duration: 0.15 } }}
-            style={{ border: '2px solid hsl(var(--live))', boxShadow: '0 0 0 3px hsl(var(--live)/0.18), 0 0 26px hsl(var(--live)/0.6)' }}
+            style={{ border: '3px solid hsl(var(--live))', boxShadow: '4px 4px 0 hsl(var(--hold))' }}
           >
-            <span className="absolute -top-6 left-0 whitespace-nowrap rounded-md bg-live px-2 py-0.5 font-mono text-[10px] font-semibold text-white shadow-lg">
+            <span className="absolute -top-6 left-0 whitespace-nowrap rounded-none border-2 border-foreground bg-live px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-primary-foreground">
               {highlight?.label ?? 'acting'}
             </span>
-            <span className="absolute inset-0 animate-pulse-glow rounded-md ring-1 ring-live/40" />
+            <span className="absolute inset-0 animate-pulse-glow" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -91,7 +91,7 @@ export function StageView({ screenshot, scrubbing, scrubLabel, highlight }: Prop
         {scrubbing && (
           <motion.div
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-lg border border-hold/40 bg-background/80 px-2.5 py-1.5 text-xs font-medium text-hold shadow-lg backdrop-blur-md"
+            className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-none border-2 border-foreground bg-card px-2.5 py-1.5 text-xs font-bold uppercase text-hold shadow-[3px_3px_0_hsl(var(--hold))]"
           >
             <Rewind className="size-3.5" />
             Rewound{scrubLabel ? ` · ${scrubLabel}` : ''}

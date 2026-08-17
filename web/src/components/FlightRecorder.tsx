@@ -13,8 +13,8 @@ interface Tick {
 }
 
 const toneBg: Record<TickTone, string> = {
-  pending: 'bg-white/12',
-  live: 'bg-live shadow-[0_0_10px_hsl(var(--live)/0.7)]',
+  pending: 'bg-foreground/25',
+  live: 'bg-live',
   ok: 'bg-ok',
   fault: 'bg-fault',
   hold: 'bg-hold',
@@ -48,7 +48,7 @@ export function FlightRecorder({ steps, stepOutcomes, currentStepIndex, events, 
   }
 
   if (stepTicks.length === 0 && actionTicks.length === 0) {
-    return <div className="h-11 border-t border-white/[0.06]" />;
+    return <div className="h-11 border-t-2 border-foreground" />;
   }
 
   const renderTick = (t: Tick, big: boolean) => {
@@ -61,11 +61,11 @@ export function FlightRecorder({ steps, stepOutcomes, currentStepIndex, events, 
             whileTap={{ scale: 0.9 }}
             onClick={() => onScrub(t.seq)}
             className={cn(
-              'shrink-0 rounded-[3px] transition-shadow',
-              big ? 'h-3.5 w-3.5' : 'h-2 w-[7px] rounded-full',
+              'shrink-0 rounded-none border border-foreground transition-transform',
+              big ? 'h-3.5 w-3.5' : 'h-2.5 w-[7px]',
               toneBg[t.tone],
               t.tone === 'live' && 'animate-pulse-glow',
-              active && 'outline outline-2 outline-offset-2 outline-white',
+              active && 'outline outline-2 outline-offset-2 outline-foreground',
             )}
             aria-label={t.label}
           />
@@ -76,18 +76,18 @@ export function FlightRecorder({ steps, stepOutcomes, currentStepIndex, events, 
   };
 
   return (
-    <div className="flex h-11 items-center gap-2.5 border-t border-white/[0.06] bg-black/20 px-4">
+    <div className="flex h-11 items-center gap-2.5 border-t-2 border-foreground bg-card px-4">
       {scrubSeq !== null && (
         <button
           onClick={() => onScrub(null)}
-          className="flex shrink-0 items-center gap-1.5 rounded-md bg-live px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-white shadow-[0_0_12px_hsl(var(--live)/0.6)]"
+          className="flex shrink-0 items-center gap-1.5 rounded-none border-2 border-foreground bg-live px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-primary-foreground"
         >
           <Play className="size-3 fill-current" /> Live
         </button>
       )}
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-2">
         {stepTicks.map((t) => renderTick(t, true))}
-        {actionTicks.length > 0 && <span className="mx-1 h-3.5 w-px shrink-0 bg-white/10" />}
+        {actionTicks.length > 0 && <span className="mx-1 h-3.5 w-0.5 shrink-0 bg-foreground" />}
         {actionTicks.slice(-40).map((t) => renderTick(t, false))}
       </div>
     </div>

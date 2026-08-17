@@ -2,8 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronRight, XCircle } from 'lucide-react';
 import type { AgentEvent } from '@/types';
-import { eventMeta, toneText, detailText } from '@/lib/event-meta';
+import { eventMeta, detailText, type Tone } from '@/lib/event-meta';
 import { cn } from '@/lib/utils';
+
+// Riso: tone reads as a solid stamped chip, never coloured text on newsprint.
+const toneChip: Record<Tone, string> = {
+  live: 'bg-live text-primary-foreground',
+  ok: 'bg-ok text-white',
+  hold: 'bg-hold text-white',
+  fault: 'bg-fault text-white',
+  muted: 'bg-card text-foreground',
+};
 
 function EventRow({ ev, isLatest }: { ev: AgentEvent; isLatest: boolean }) {
   const [open, setOpen] = useState(false);
@@ -18,19 +27,19 @@ function EventRow({ ev, isLatest }: { ev: AgentEvent; isLatest: boolean }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.28, ease: 'easeOut' }}
       className={cn(
-        'group flex flex-col gap-1 rounded-lg px-2.5 py-2 transition-colors hover:bg-white/[0.03]',
-        isLatest && 'bg-white/[0.025]',
+        'group flex flex-col gap-1 rounded-none px-2.5 py-2 transition-colors hover:bg-accent',
+        isLatest && 'bg-accent/60',
       )}
     >
       {/* Header row: everything lives on one flex ROW; detail goes on its own block below */}
       <div className="flex items-start gap-2.5">
-        <span className={cn('mt-px flex size-5 shrink-0 items-center justify-center rounded-md bg-white/[0.05]', toneText[tone])}>
+        <span className={cn('mt-px flex size-5 shrink-0 items-center justify-center rounded-none border border-foreground', toneChip[tone])}>
           <Icon className="size-3" />
         </span>
-        <span className={cn('mt-1 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wide', toneText[tone])}>
+        <span className="mt-1 shrink-0 font-mono text-[10px] font-bold uppercase tracking-wide text-foreground">
           {label}
         </span>
-        <span className="mt-0.5 min-w-0 flex-1 break-words text-[13px] leading-relaxed text-foreground/85">
+        <span className="mt-0.5 min-w-0 flex-1 break-words text-[13px] leading-relaxed text-foreground">
           {ev.explain}
           {failedAction && <XCircle className="ml-1.5 inline size-3.5 -translate-y-px text-fault" />}
         </span>
@@ -55,7 +64,7 @@ function EventRow({ ev, isLatest }: { ev: AgentEvent; isLatest: boolean }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <pre className="ml-[30px] mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-white/[0.06] bg-black/30 p-2.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
+            <pre className="ml-[30px] mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-words rounded-none border-2 border-foreground bg-background p-2.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
               {detail}
             </pre>
           </motion.div>
