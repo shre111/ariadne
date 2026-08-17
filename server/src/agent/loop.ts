@@ -329,6 +329,10 @@ export async function startRun(ctx: StartRunContext): Promise<void> {
         emit,
       });
 
+      // Stopped mid-step: skip the step.finished event and notes and go straight
+      // to the aborted handler below, so a stop ends the run promptly and cleanly.
+      if (signal.aborted) break;
+
       emit({
         type: 'step.finished',
         runId,
@@ -534,6 +538,7 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
       }
     }
     if (!response) break; // retries exhausted or non-fatal error — end this step
+    if (signal.aborted) break; // a stop aborted the model call mid-turn — unwind now
 
     // Emit any text responses as thoughts
     const textBlocks = response.content.filter((b) => b.type === 'text');
@@ -562,6 +567,7 @@ async function executeStep(ctx: StepContext): Promise<StepResult> {
 
     for (const toolUse of toolUseBlocks) {
       if (toolUse.type !== 'tool_use') continue;
+      if (signal.aborted) break; // stop requested — don't start another action
 
       const tool = toolUse.name;
       const params = toolUse.input as Record<string, unknown>;
