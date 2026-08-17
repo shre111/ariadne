@@ -38,6 +38,14 @@ export function useNarration(events: AgentEvent[], enabled: boolean): void {
     for (const ev of events) {
       if (ev.seq <= lastSeq.current) continue;
       lastSeq.current = ev.seq;
+      // A stop must silence narration at once: clear whatever is already queued
+      // or mid-utterance, and don't speak the backlog that led up to it. Mark
+      // every event consumed so none of it replays on a later render.
+      if (ev.type === 'run.stopping' || (ev.type === 'run.failed' && ev.reason === 'stopped')) {
+        synth.cancel();
+        lastSeq.current = events.length ? events[events.length - 1]!.seq : lastSeq.current;
+        break;
+      }
       const text = narrate(ev);
       if (!text) continue;
       const u = new SpeechSynthesisUtterance(text);
